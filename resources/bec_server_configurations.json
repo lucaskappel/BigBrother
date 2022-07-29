@@ -1,0 +1,12 @@
+{
+ "Discord Guild ID": {
+  "guild_alias": "Whatever you want to call this server. By the way, the ipv4 entries are the same for the server I made this for, only differing by the port. Idk if that's the general case tho so /shrug",
+
+  "bec_server_ipv4": "123.456.789.00",
+  "bec_server_port": 1234,
+
+  "bec_rcon_ipv4": "123.456.789.00",
+  "bec_rcon_port": 1234,
+  "bec_rcon_password": "RCON Password"
+ }
+}
