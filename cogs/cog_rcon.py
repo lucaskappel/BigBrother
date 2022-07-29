@@ -44,7 +44,7 @@ class Steam_RCON(commands.Cog):
         The RCON Clients will disconnect themselves upon termination, so don't need to do anything,\n
         unless we want to do something when they do."""
 
-        with open(r"resources\guild_configurations.json", 'w', encoding='utf8') as json_file:
+        with open(r"resources\BEC_Server_Configurations.json", 'w', encoding='utf8') as json_file:
             json.dump(self.BEC_Server_Configurations, json_file, indent=1, sort_keys=False)
         return
 
