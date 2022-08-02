@@ -1,5 +1,6 @@
 import json
 import asyncio
+import os
 from threading import Timer, Event
 import discord
 from discord.ext import commands
@@ -15,10 +16,11 @@ class Server_Bridge:
         # keep a reference to the discord client for handling messages
         self.discord_client = discord_client
 
-        # Load the config file.
+        # Load the config file, doing all the path stuff as needed
         self.bec_config = dict()
+        if not os.path.exists(r'resources'): os.makedirs(r'resources') # Make resources folder if it doesn't exist
         with open(r"resources\bec_server_config.json", encoding='utf8') as json_file:
-            self.bec_config = json.load(json_file)
+            self.bec_config = json.load(json_file) # load the config file into memory
 
         # Create the ARC client, which will be the connection between the dayz server and the bot.
         self.bec_client = bec_rcon.ARC(
@@ -37,8 +39,10 @@ class Server_Bridge:
             "on_disconnect",
             lambda: ( # Use a tuple so we can run multiple commands in one lambda! :D
 
-                # Let everyone know that the bot has disconnected.
+                # Let console know the bot disconnected.
                 print("Disconnected"),
+
+                # Let the debug channel know the bot disconnected.
                 asyncio.run_coroutine_threadsafe(
                     self.get_debug_channel().send('Disconnected, attempting to reconnect...'),
                     self.discord_client.loop),
@@ -49,11 +53,20 @@ class Server_Bridge:
                 # At that point, the 'successfully reconnected' is sent.
                 # If it is unable to reconnect after all its attempts are used, cycle_reconnect returns false
                 # At which point, we ask the log channel to manually restart the bot.
-                self.get_debug_channel().send('Successfully reconnected.')
-                if self.cycle_reconnect()
-                else self.get_debug_channel().send(
-                    'Unable to reconnect. Please use ```)reconnect``` once the server has been restored.')
-            ) # End lambda tuple
+
+                asyncio.run_coroutine_threadsafe(
+                    self.get_debug_channel().send('Successfully reconnected.'),
+                    self.discord_client.loop)
+
+                if asyncio.run_coroutine_threadsafe(
+                    self.cycle_reconnect(),
+                    self.discord_client.loop)
+
+                else asyncio.run_coroutine_threadsafe(
+                    self.get_debug_channel().send('Unable to reconnect. Use ```)reconnect``` upon server restoration.'),
+                    self.discord_client.loop)
+
+            ) # End lambda statement tuple
         ) # End add_Event on_disconnect
 
         # Add heartbeat; clients need to see a signal every 45 seconds, or they close.
@@ -61,11 +74,10 @@ class Server_Bridge:
 
         return
 
-    def heartbeat(self, heartbeat_counter=0):
+    def heartbeat(self):
         """The heartbeat keeps the client alive.
         Calls itself every 30 seconds to make sure the clients do not close.
-        Also updates the player count at this time.
-        heartbeat_counter is a recursive-ish variable to help track how long the bot should try to reconnect."""
+        Also updates the player count at this time."""
 
         Timer(
             30, # Every thirty seconds...
@@ -99,14 +111,13 @@ class Server_Bridge:
             text_channel for text_channel in target_server.text_channels
             if text_channel.id == self.bec_config['guild_debug_channel'])
 
-
     async def update_player_count_in_discord_activity(self):
         """Update's the client's activity to mirror the number of players on the dayz server."""
 
         await self.discord_client.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name=f'over {len(await self.bec_client.getPlayersArray())} DayZ survivors...'))
+                name=f'over {len(await self.bec_client.getPlayersArray())} survivors...'))
 
         return
 
@@ -163,7 +174,7 @@ class Server_Bridge:
 
         return
 
-    async def cycle_reconnect(self, reconnect_attempts = 0):
+    async def cycle_reconnect(self, reconnect_attempts=0):
         """Try to reconnect once per minute, until reconnect_attempts surpasses the config maximum setting"""
 
         # Check how many times we've tried to connect
@@ -177,6 +188,7 @@ class Server_Bridge:
         # Try again after the specified interval.
         await asyncio.sleep(self.bec_config["reconnect_attempt_interval_s"])
         return await self.cycle_reconnect(reconnect_attempts + 1)
+
 
 class Steam_RCON(commands.Cog):
 
@@ -195,10 +207,15 @@ class Steam_RCON(commands.Cog):
              'args[2] = DayZ server RCON password, surrounded by quotes'
              'args[3] = ID of the text channel to use as the bridge for displaying global chat'
              '\nFull call should look like this in the channel to be used for server logs:'
-             ')isc 123.456.789.00 9999 "rcon_password", 1234567890123456789'
+             ')isc 123.456.789.00 9999 "rcon_password" 1234567890123456789'
     )
     @commands.has_guild_permissions(administrator=True)
     async def initialize_server_configuration(self, command_context: commands.Context, *args):
+
+        if len(args) != 4: # Make sure the command is formatted properly
+            await self.server_bridge.get_debug_channel().send(
+                'Please format the command correctly:\n' +
+                '> )isc <ipv4> <port> "<rcon_password>" <bridge_channel_id>')
 
         guild_config = {
             "guild_alias": command_context.guild.name,
@@ -209,7 +226,7 @@ class Steam_RCON(commands.Cog):
             "guild_debug_channel": int(command_context.channel.id),
             "guild_dayz_channel": int(args[3]),
             "maximum_reconnect_attempts": 100,
-            "reconnect_attempt_interval_s": 30
+            "reconnect_attempt_interval_s": 60
         }
 
         # Write the config to the file
@@ -222,9 +239,8 @@ class Steam_RCON(commands.Cog):
         name='debug',
         help='Debug command',
         invoke_without_command=True)
-    async def debug(self, command_context: commands.Context, *args):
+    async def debug(self, command_context: commands.Context):
         if command_context.author.id != 183033825108951041: return
-
         print(self._client.__getattribute__("command_prefix"))
         return
 
@@ -232,6 +248,12 @@ class Steam_RCON(commands.Cog):
     @commands.has_permissions(view_audit_log=True)
     async def rcon_reconnect(self, command_context: commands.Context):
         print('Attempting to reconnect...')
+        await self.server_bridge.get_debug_channel().send('Attempting to reconnect...')
         await self.server_bridge.bec_client.reconnect()
-        if self.server_bridge.bec_client.keepAlive(): print('Reconnected!')
+        if self.server_bridge.bec_client.keepAlive():
+            print('Reconnected.')
+            await self.server_bridge.get_debug_channel().send('Reconnected.')
+        else:
+            print('Failed to reconnect.')
+            await self.server_bridge.get_debug_channel().send('Failed to reconnect.')
         return
