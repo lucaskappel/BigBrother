@@ -293,7 +293,7 @@ class ARC():
 
     #Ban a player's BE GUID from the server. If time is not specified or 0, the ban will be permanent.
     #If reason is not specified the player will be kicked with the message "Banned".
-    async def banPlayer(self, player_id, reason = 'Banned', time = 0):
+    async def banPlayer(self, player_id, reason='Banned', time=0):
         if (type(player_id) != str and type(player) != int):
             raise Exception('Expected parameter 1 to be integer or string, got %s' % type(player_id))
         if (type(reason) != str or type(time) != int):
@@ -522,6 +522,8 @@ class ARC():
             except Exception as e: 
                 if(type(e) != BlockingIOError): #ignore "no data recevied" error
                     log.error(traceback.format_exc())
+                    print(e)
+                    print('disconnected in listenForData')
                     self.disconnect()
             if(answer==""):
                 await asyncio.sleep(0.2)
@@ -542,7 +544,9 @@ class ARC():
             await self.getBEServerVersion()
         except Exception as e:
             log.debug("[rcon] Failed to keep Alive - Disconnected")
+            print('disconnected in keepalive')
             self.disconnect() #connection lost
+            return False
 
     #Converts BE text "array" list to array
     def formatList(self, str):
@@ -556,6 +560,6 @@ class ARC():
                 result[-1].append(val.strip())
         return result
 
-    #Remove control characte	rs
-    def cleanList(self, str):
-        return re.sub('/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', str)
+    #Remove control characters
+    def cleanList(self, strlist):
+        return re.sub('/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', strlist)
