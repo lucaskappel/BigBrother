@@ -5,5 +5,7 @@
   "bec_rcon_port": 2325,
   "bec_rcon_password": "x6b33",
   "guild_debug_channel": 951965965472645130,
-  "guild_dayz_channel": 1003754064925966377
+  "guild_dayz_channel": 1003754064925966377,
+  "maximum_reconnect_attempts": 100,
+  "reconnect_attempt_interval_s": 60
  }

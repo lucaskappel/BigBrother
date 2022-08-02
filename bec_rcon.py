@@ -547,6 +547,7 @@ class ARC():
             print('disconnected in keepalive')
             self.disconnect() #connection lost
             return False
+        return True
 
     #Converts BE text "array" list to array
     def formatList(self, str):
