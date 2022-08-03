@@ -2,7 +2,7 @@
 
 Another discord bot :corn:
 
-This bot was made to support the City of Wolves DayZSA Server. I made my own instead of using someone else's because everyone else's didn't work and were complicated and messy and I only have so many brain cells. I made this one so it could be simple to set up and run and modify for your own server. Sure, it's not perfectly generic and can only handle one dayz server at a time, but even though I'm single I still busy and what I made here is like ten times more organized and well-documented than the other stuff I saw. buy my mixtape
+This bot was made to support the City of Wolves DayZSA Server. I made my own instead of using someone else's because everyone else's didn't work and were complicated and messy and I only have so many brain cells. I made this one so it could be simple to set up and run and modify for your own server and I don't know why doing that is so hard for other developers. Sure, it's not perfectly generic and can only handle one dayz server at a time, but even though I'm single I still busy and what I made here is like ten times more organized and well-documented than the other stuff I saw. buy my mixtape
 
 The actual RCON parts are done in bec_rcon.py, made by Yoshi-E:
 https://github.com/Yoshi-E/Python-BEC-RCon
