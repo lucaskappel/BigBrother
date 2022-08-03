@@ -37,7 +37,7 @@ https://github.com/Yoshi-E/Python-BEC-RCon
 
    )isc {rcon_ipv4} {rcon_port} "{rcon_password}" {bridge_channel_id} {moderation_channel_id}
    
-   - You can get the ipv4, port, and rcon_password from your rcon configuration file in battleeye extended controls I think
+   - You can get the ipv4, port, and rcon_password from your rcon configuration file in battleeye extended controls I think, it should be in a config file somewhere for the server i just had someone get the info for me
    
    - Get the channel id's by right clicking on the channels with developer mode enabled in discord
    
