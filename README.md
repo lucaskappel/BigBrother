@@ -29,7 +29,7 @@ https://github.com/Yoshi-E/Python-BEC-RCon
 
 3) create a file called '.env' in the folder where this readme is.
 
-4) Copy and paste this into .env: 'TOKEN=putyourtokenhere'
+4) Copy and paste this into .env: 'TOKEN=putyourbottokenhere'
 
 5) Make sure the bot is in your server, then run main.py
 
