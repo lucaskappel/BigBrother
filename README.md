@@ -32,7 +32,7 @@ This bot was made to support the City of Wolves DayZSA Server.
 
 6) Call this command wherever you want to use as the server's log channel:
 
-   )isc {ipv4} {port} "{rcon_password}" {bridge_channel_id} {moderation_channel_id}
+   )isc {rcon_ipv4} {rcon_port} "{rcon_password}" {bridge_channel_id} {moderation_channel_id}
    
    - You can get the ipv4, port, and rcon_password from your rcon configuration file in battleeye extended controls I think
    
