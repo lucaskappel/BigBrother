@@ -209,7 +209,7 @@ class Steam_RCON(commands.Cog):
     @commands.has_guild_permissions(administrator=True)
     async def initialize_server_configuration(self, command_context: commands.Context, *args):
 
-        if len(args) != 4: # Make sure the command is formatted properly
+        if len(args) != 5: # Make sure the command is formatted properly
             await self.server_bridge.get_debug_channel().send(
                 'Please format the command correctly:\n> ' +
                 ')isc <ipv4> <port> "<rcon_password>" <bridge_channel_id> <moderation_channel_id>')
@@ -222,6 +222,7 @@ class Steam_RCON(commands.Cog):
             "bec_rcon_password": args[2],
             "guild_debug_channel": int(command_context.channel.id),
             "guild_dayz_channel": int(args[3]),
+            "guild_moderation_channel": int(args[4]),
             "maximum_reconnect_attempts": 100,
             "reconnect_attempt_interval_s": 60
         }
@@ -237,23 +238,30 @@ class Steam_RCON(commands.Cog):
         help='Debug command',
         invoke_without_command=True)
     async def debug(self, command_context: commands.Context):
-        if command_context.author.id != 183033825108951041: return
+        if command_context.author.id != 183033825108951041: return # Only run if it's me >:L
         self.server_bridge.bec_client.disconnect()
         return
 
     @commands.command(name='reconnect')
     @commands.has_permissions(view_audit_log=True)
     async def rcon_reconnect(self, command_context: commands.Context):
+        
+        # Let the console and discord know there was a deconnect and we're trying to fix it
         print('Attempting to reconnect...')
-        debug_channel = await self.server_bridge.get_debug_channel()
+        debug_channel = await self.server_bridge.get_debug_channel() # get the channel to use elsewhere too
         await debug_channel.send('Attempting to reconnect...')
+        
+        # Attempt the reconnnect
         await self.server_bridge.bec_client.reconnect()
+        
+        # Check if the server returns the signal from keepalive, which would signal that the reconnect worked
         if await self.server_bridge.bec_client.keepAlive():
             print('Reconnected.')
             await debug_channel.send('Reconnected.')
         else:
             print('Failed to reconnect.')
             await debug_channel.send('Failed to reconnect.')
+            
         return
 
     @commands.command(name='rcon_kick')
@@ -368,7 +376,7 @@ class Steam_RCON(commands.Cog):
             "Server Instance ID": player_to_ban_raw[0],
         }
 
-        # Confirm the identity of the user to kick.
+        # Confirm the identity of the user to kick. Print an embed showing their information.
         ban_embed = discord.Embed(
             color=discord.Color.red(),
             title='Confirm Player Ban',
