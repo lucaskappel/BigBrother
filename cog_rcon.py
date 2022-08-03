@@ -6,6 +6,8 @@ import discord
 from discord.ext import commands
 import bec_rcon
 import re
+# bot test 903748362736652349
+# moderation 904464944734733322
 
 
 class Server_Bridge:
@@ -35,39 +37,12 @@ class Server_Bridge:
                 self.parse_message_rcon_to_discord(args[0]),
                 self.discord_client.loop))
 
+        # Upon disconnect, try to reconnect in intervals defined by the config file.
         self.bec_client.add_Event(
             "on_disconnect",
-            lambda: ( # Use a tuple so we can run multiple commands in one lambda! :D
-
-                # Let console know the bot disconnected.
-                print("Disconnected"),
-
-                # Let the debug channel know the bot disconnected.
-                asyncio.run_coroutine_threadsafe(
-                    self.get_debug_channel().send('Disconnected, attempting to reconnect...'),
-                    self.discord_client.loop),
-
-                # Then execute this ternary command:
-                # Check "if", this will attempt to reconnect a certain number of times, defined by the config file.
-                # If it successfully reconnects, it returns "True"
-                # At that point, the 'successfully reconnected' is sent.
-                # If it is unable to reconnect after all its attempts are used, cycle_reconnect returns false
-                # At which point, we ask the log channel to manually restart the bot.
-
-                asyncio.run_coroutine_threadsafe(
-                    self.get_debug_channel().send('Successfully reconnected.'),
-                    self.discord_client.loop)
-
-                if asyncio.run_coroutine_threadsafe(
-                    self.cycle_reconnect(),
-                    self.discord_client.loop)
-
-                else asyncio.run_coroutine_threadsafe(
-                    self.get_debug_channel().send('Unable to reconnect. Use ```)reconnect``` upon server restoration.'),
-                    self.discord_client.loop)
-
-            ) # End lambda statement tuple
-        ) # End add_Event on_disconnect
+            lambda: asyncio.run_coroutine_threadsafe(
+                self.cycle_reconnect(),
+                self.discord_client.loop))
 
         # Add heartbeat; clients need to see a signal every 45 seconds, or they close.
         self.heartbeat()
@@ -110,6 +85,18 @@ class Server_Bridge:
         return next(
             text_channel for text_channel in target_server.text_channels
             if text_channel.id == self.bec_config['guild_debug_channel'])
+
+    async def get_moderation_channel(self):
+        """Get the guild's moderation channel"""
+
+        # Get the server according to the config
+        target_server = self.discord_client.get_guild(
+            self.bec_config['guild_id'])
+
+        # return the first text channel whose id matches the config's debug channel id
+        return next(
+            text_channel for text_channel in target_server.text_channels
+            if text_channel.id == self.bec_config['guild_moderation_channel'])
 
     async def update_player_count_in_discord_activity(self):
         """Update's the client's activity to mirror the number of players on the dayz server."""
@@ -155,7 +142,10 @@ class Server_Bridge:
         it to the dayz server as a formatted global message."""
 
         # If the message wasn't sent in one of the valid config channels, ignore it.
-        if discord_message.channel.id not in [*self.bec_config.values()]: return
+        if discord_message.channel.id not in [
+                self.bec_config['guild_dayz_channel'],
+                self.bec_config['guild_debug_channel']]:
+            return
 
         # Make sure the message isn't a command
         if discord_message.content.startswith(self.discord_client.__getattribute__("command_prefix")): return
@@ -177,12 +167,20 @@ class Server_Bridge:
     async def cycle_reconnect(self, reconnect_attempts=0):
         """Try to reconnect once per minute, until reconnect_attempts surpasses the config maximum setting"""
 
+        debug_channel = await self.get_debug_channel()
+        await debug_channel.send('Disconnected, attempting to reconnect...')
+        print('Disconnected, attempting to reconnect...')
+
         # Check how many times we've tried to connect
-        if reconnect_attempts > self.bec_config["maximum_reconnect_attempts"]: return False
+        if reconnect_attempts > self.bec_config["maximum_reconnect_attempts"]:
+            await debug_channel.send('Unable to reconnect. Use ```)reconnect``` upon server restoration.')
+            print('Unable to reconnect. Use ```)reconnect``` upon server restoration.')
+            return False
 
         # Try to reconnect. IF keepAlive returns true, the reconnection was successful.
         await self.bec_client.reconnect()
         if await self.bec_client.keepAlive():
+            await debug_channel.send('Successfully reconnected')
             return True
 
         # Try again after the specified interval.
@@ -206,16 +204,17 @@ class Steam_RCON(commands.Cog):
              'args[1] = DayZ server RCON port, ex 9999'
              'args[2] = DayZ server RCON password, surrounded by quotes'
              'args[3] = ID of the text channel to use as the bridge for displaying global chat'
+             'args[4] = ID of the text channel to use for moderation'
              '\nFull call should look like this in the channel to be used for server logs:'
-             ')isc 123.456.789.00 9999 "rcon_password" 1234567890123456789'
+             ')isc 123.456.789.00 9999 "rcon password" 1234567890123456789 1234567890123456789'
     )
     @commands.has_guild_permissions(administrator=True)
     async def initialize_server_configuration(self, command_context: commands.Context, *args):
 
         if len(args) != 4: # Make sure the command is formatted properly
             await self.server_bridge.get_debug_channel().send(
-                'Please format the command correctly:\n' +
-                '> )isc <ipv4> <port> "<rcon_password>" <bridge_channel_id>')
+                'Please format the command correctly:\n> ' +
+                ')isc <ipv4> <port> "<rcon_password>" <bridge_channel_id> <moderation_channel_id>')
 
         guild_config = {
             "guild_alias": command_context.guild.name,
@@ -241,19 +240,163 @@ class Steam_RCON(commands.Cog):
         invoke_without_command=True)
     async def debug(self, command_context: commands.Context):
         if command_context.author.id != 183033825108951041: return
-        print(self._client.__getattribute__("command_prefix"))
+        self.server_bridge.bec_client.disconnect()
         return
 
     @commands.command(name='reconnect')
     @commands.has_permissions(view_audit_log=True)
     async def rcon_reconnect(self, command_context: commands.Context):
         print('Attempting to reconnect...')
-        await self.server_bridge.get_debug_channel().send('Attempting to reconnect...')
+        debug_channel = await self.server_bridge.get_debug_channel()
+        await debug_channel.send('Attempting to reconnect...')
         await self.server_bridge.bec_client.reconnect()
-        if self.server_bridge.bec_client.keepAlive():
+        if await self.server_bridge.bec_client.keepAlive():
             print('Reconnected.')
-            await self.server_bridge.get_debug_channel().send('Reconnected.')
+            await debug_channel.send('Reconnected.')
         else:
             print('Failed to reconnect.')
-            await self.server_bridge.get_debug_channel().send('Failed to reconnect.')
+            await debug_channel.send('Failed to reconnect.')
+        return
+
+    @commands.command(name='rcon_kick')
+    # @commands.has_permissions(kick_members=True)
+    async def rcon_player_kick(self, command_context: commands.Context):
+        if command_context.author.id != 183033825108951041: return
+
+        # Get the moderation channel with which to work, and make sure the command was in it
+        moderation_channel = await self.server_bridge.get_moderation_channel()
+        if command_context.channel.id != moderation_channel.id: return
+
+        # First, get the list of players on the server. [pid, ip, maybe player's server life id?, BE_UID, name]
+        player_list = await self.server_bridge.bec_client.getPlayersArray()
+
+        # print their information out, ordered and selectable.
+        kick_choices = 'Select from the list below who to kick. Send a message formatted as:\n> ' \
+                       '<#> <Reason for kick>' \
+                       '\n'
+        for player in player_list: kick_choices += f'\n{player_list.index(player)} : {player[4]} : {player[3]}'
+        await moderation_channel.send(kick_choices)
+
+        # Wait for a reply which says which user to kick.
+        reply_message = await self._client.wait_for(
+            'message',
+            check=lambda reply: False not in (
+                reply.author.id == command_context.author.id,
+                reply.channel.id == command_context.channel.id,
+                re.match(r"^\d* .*", reply.content) is not None
+            ),
+            timeout=120
+        )
+
+        # Interpret the reply message above. Get the player from the array.
+        reply_message_interpretation = re.match(r"^(?P<index>\d*) (?P<kick_reason>.*)", reply_message.content)
+        player_to_kick_raw = player_list[int(reply_message_interpretation.group('index'))]
+        player_to_kick = {
+            "Name": player_to_kick_raw[4],
+            "IP Address": player_to_kick_raw[1],
+            "BattleEye ID": player_to_kick_raw[3],
+            "Server Lifetime ID": player_to_kick_raw[2],
+            "Server Instance ID": player_to_kick_raw[0],
+        }
+
+        # Confirm the identity of the user to kick.
+        kick_embed = discord.Embed(
+            color=discord.Color.red(),
+            title='Confirm Kick Player',
+            description=reply_message_interpretation.group('kick_reason')
+        )
+        for parameter in [*player_to_kick.keys()]:
+            kick_embed.add_field(
+                name=parameter,
+                value=player_to_kick[parameter])
+        kick_message = await moderation_channel.send(embed=kick_embed)
+
+        # Add reactions to the message and wait for the user to confirm with them.
+        for emote in ["✅", "❌"]: await kick_message.add_reaction(emote)
+
+        # Wait for the original author to add a reaction from the above two.
+        reply_emote = await self._client.wait_for(
+            'reaction_add',
+            check=lambda reaction, user: False not in (
+                reaction.message.id == kick_message.id, # Make sure the reacted message is the embed
+                user.id == reply_message.author.id, # Make sure the reaction was added by the og kicker
+            ),
+            timeout=120
+        )
+
+        # If the added emote is the check mark, perform the kick.
+        if reply_emote[0] == "✅": await self.server_bridge.bec_client.kickPlayer(player_to_kick["BattleEye ID"])
+
+        return
+
+    @commands.command(name='rcon_ban')
+    # @commands.has_permissions(ban_members=True)
+    async def rcon_player_ban(self, command_context: commands.Context):
+        if command_context.author.id != 183033825108951041: return
+
+        moderation_channel = await self.server_bridge.get_moderation_channel()
+        if command_context.channel.id != moderation_channel.id: return
+
+        # First, get the list of players on the server. [pid, ip, a number?, BE_UID, name]
+        player_list = await self.server_bridge.bec_client.getPlayersArray()
+
+        # print their information out, ordered and selectable.
+        ban_choices = 'Select from the list below who to ban. Send a message formatted as:\n> ' \
+                      '<#> <duration in seconds> <Reason for ban>' \
+                      '\n'
+        for player in player_list: ban_choices += f'\n{player_list.index(player)} : {player[4]} : {player[3]}'
+        await moderation_channel.send(ban_choices)
+
+        # Wait for a reply which says which user to kick.
+        reply_message = await self._client.wait_for(
+            'message',
+            check=lambda reply: False not in (
+                reply.author.id == command_context.author.id,
+                reply.channel.id == command_context.channel.id,
+                re.match(r"^\d* \d* .*", reply.content) is not None
+            ),
+            timeout=120
+        )
+
+        # Interpret the reply message above. Get the player from the array.
+        reply_message_interpretation = re.match(
+            r"^(?P<index>\d*) (?P<ban_duration>\d*) (?P<ban_reason>.*)", reply_message.content)
+        player_to_ban_raw = player_list[int(reply_message_interpretation.group('index'))]
+        player_to_ban = {
+            "Name": player_to_ban_raw[4],
+            "IP Address": player_to_ban_raw[1],
+            "BattleEye ID": player_to_ban_raw[3],
+            "Server Lifetime ID": player_to_ban_raw[2],
+            "Server Instance ID": player_to_ban_raw[0],
+        }
+
+        # Confirm the identity of the user to kick.
+        ban_embed = discord.Embed(
+            color=discord.Color.red(),
+            title='Confirm Player Ban',
+            description=f'<{reply_message_interpretation.group("ban_duration")}> seconds \n ' +
+                        f'{reply_message_interpretation.group("ban_reason")}'
+        )
+        for parameter in [*player_to_ban.keys()]:
+            ban_embed.add_field(
+                name=parameter,
+                value=player_to_ban[parameter])
+        ban_message = await moderation_channel.send(embed=ban_embed)
+
+        # Add reactions to the message and wait for the user to confirm with them.
+        for emote in ["✅", "❌"]: await ban_message.add_reaction(emote)
+
+        # Wait for the original author to add a reaction from the above two.
+        reply_emote = await self._client.wait_for(
+            'reaction_add',
+            check=lambda reaction, user: False not in (
+                reaction.message.id == ban_message.id,  # Make sure the reacted message is the embed
+                user.id == reply_message.author.id,  # Make sure the reaction was added by the og kicker
+            ),
+            timeout=120
+        )
+
+        # If the added emote is the check mark, perform the kick.
+        if reply_emote[0] == "✅": await self.server_bridge.bec_client.banPlayer(player_to_ban["BattleEye ID"])
+
         return

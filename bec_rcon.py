@@ -212,7 +212,7 @@ class ARC():
         return await self.waitForResponse()
 
     #Kicks a player who is currently on the server
-    async def kickPlayer(self, player, reason = 'Admin Kick'):
+    async def kickPlayer(self, player, reason='Admin Kick'):
         if (type(player) != int and type(player) != str):
             raise Exception('Expected parameter 1 to be string or integer, got %s' % type(player))
         if (type(reason) != str):
