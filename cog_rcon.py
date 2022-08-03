@@ -6,8 +6,6 @@ import discord
 from discord.ext import commands
 import bec_rcon
 import re
-# bot test 903748362736652349
-# moderation 904464944734733322
 
 
 class Server_Bridge:
@@ -259,9 +257,8 @@ class Steam_RCON(commands.Cog):
         return
 
     @commands.command(name='rcon_kick')
-    # @commands.has_permissions(kick_members=True)
+    @commands.has_permissions(kick_members=True)
     async def rcon_player_kick(self, command_context: commands.Context):
-        if command_context.author.id != 183033825108951041: return
 
         # Get the moderation channel with which to work, and make sure the command was in it
         moderation_channel = await self.server_bridge.get_moderation_channel()
@@ -294,7 +291,7 @@ class Steam_RCON(commands.Cog):
         player_to_kick = {
             "Name": player_to_kick_raw[4],
             "IP Address": player_to_kick_raw[1],
-            "BattleEye ID": player_to_kick_raw[3],
+            "BattleEye ID": player_to_kick_raw[3], # Do not kick using this as an identifier.
             "Server Lifetime ID": player_to_kick_raw[2],
             "Server Instance ID": player_to_kick_raw[0],
         }
@@ -302,13 +299,14 @@ class Steam_RCON(commands.Cog):
         # Confirm the identity of the user to kick.
         kick_embed = discord.Embed(
             color=discord.Color.red(),
-            title='Confirm Kick Player',
+            title='Confirm Player Kick',
             description=reply_message_interpretation.group('kick_reason')
         )
         for parameter in [*player_to_kick.keys()]:
             kick_embed.add_field(
                 name=parameter,
-                value=player_to_kick[parameter])
+                value=player_to_kick[parameter],
+                inline=False)
         kick_message = await moderation_channel.send(embed=kick_embed)
 
         # Add reactions to the message and wait for the user to confirm with them.
@@ -325,14 +323,14 @@ class Steam_RCON(commands.Cog):
         )
 
         # If the added emote is the check mark, perform the kick.
-        if reply_emote[0] == "✅": await self.server_bridge.bec_client.kickPlayer(player_to_kick["BattleEye ID"])
+        if reply_emote[0].emoji == "✅":
+            await self.server_bridge.bec_client.kickPlayer(player_to_kick["Server Instance ID"])
 
         return
 
     @commands.command(name='rcon_ban')
-    # @commands.has_permissions(ban_members=True)
+    @commands.has_permissions(ban_members=True)
     async def rcon_player_ban(self, command_context: commands.Context):
-        if command_context.author.id != 183033825108951041: return
 
         moderation_channel = await self.server_bridge.get_moderation_channel()
         if command_context.channel.id != moderation_channel.id: return
@@ -380,7 +378,8 @@ class Steam_RCON(commands.Cog):
         for parameter in [*player_to_ban.keys()]:
             ban_embed.add_field(
                 name=parameter,
-                value=player_to_ban[parameter])
+                value=player_to_ban[parameter],
+                inline=False)
         ban_message = await moderation_channel.send(embed=ban_embed)
 
         # Add reactions to the message and wait for the user to confirm with them.
@@ -396,7 +395,8 @@ class Steam_RCON(commands.Cog):
             timeout=120
         )
 
-        # If the added emote is the check mark, perform the kick.
-        if reply_emote[0] == "✅": await self.server_bridge.bec_client.banPlayer(player_to_ban["BattleEye ID"])
+        # If the added emote is the check mark. Do we need to kick them too?
+        if reply_emote[0].emoji == "✅":
+            await self.server_bridge.bec_client.addBan(player_to_ban["BattleEye ID"])
 
         return

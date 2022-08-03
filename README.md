@@ -4,6 +4,9 @@ Another discord bot :corn:
 
 This bot was made to support the City of Wolves DayZSA Server.
 
+The actual RCON parts are done in bec_rcon.py, made by Yoshi-E:
+https://github.com/Yoshi-E/Python-BEC-RCon
+
 <h3>Bot Features</h3>
 
 - Mirrors the DayZ server's global and local chat to a text "bridge" channel in Discord
