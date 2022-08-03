@@ -41,7 +41,7 @@ https://github.com/Yoshi-E/Python-BEC-RCon
    
    - Get the channel id's by right clicking on the channels with developer mode enabled in discord
    
-8) Restart the bot, because it only creates the connection to the DayZ server on startup because I am neither a CS major nor a wizard
+8) Restart the bot, because it only creates the connection to the DayZ server on startup because I am neither a CS major nor a wizard, just a guy who knows a little bit of python and friends
 
 
 TODO
