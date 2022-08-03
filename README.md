@@ -5,6 +5,7 @@ Another discord bot :corn:
 This bot was made to support the City of Wolves DayZSA Server.
 
 <h3>Bot Features</h3>
+
 - Mirrors the DayZ server's global and local chat to a text "bridge" channel in Discord
 
 - Discord users can type in this bridge channel to message the DayZ server's global chat right back.
@@ -18,6 +19,7 @@ This bot was made to support the City of Wolves DayZSA Server.
 
 
 <h2>How to Use</h2>
+
 1) Install python3 on your computer or whatever
 
 2) Download this repo as a zip in the top right corner under "code"
