@@ -2,7 +2,7 @@
 
 Another discord bot :corn:
 
-This bot was made to support the City of Wolves DayZSA Server.
+This bot was made to support the City of Wolves DayZSA Server. I made my own instead of using someone else's because everyone else's didn't work and were complicated and messy and I only have so many brain cells. I made this one so it could be simple to set up and run and modify for your own server and I don't know why doing that is so hard for other developers. Sure, it's not perfectly generic and can only handle one dayz server at a time, but even though I'm single I still busy and what I made here is like ten times more organized and well-documented than the other stuff I saw. buy my mixtape
 
 The actual RCON parts are done in bec_rcon.py, made by Yoshi-E:
 https://github.com/Yoshi-E/Python-BEC-RCon
@@ -29,7 +29,7 @@ https://github.com/Yoshi-E/Python-BEC-RCon
 
 3) create a file called '.env' in the folder where this readme is.
 
-4) Copy and paste this into .env: 'TOKEN=putyourtokenhere'
+4) Copy and paste this into .env: 'TOKEN=putyourbottokenhere'
 
 5) Make sure the bot is in your server, then run main.py
 
@@ -37,11 +37,11 @@ https://github.com/Yoshi-E/Python-BEC-RCon
 
    )isc {rcon_ipv4} {rcon_port} "{rcon_password}" {bridge_channel_id} {moderation_channel_id}
    
-   - You can get the ipv4, port, and rcon_password from your rcon configuration file in battleeye extended controls I think
+   - You can get the ipv4, port, and rcon_password from your rcon configuration file in battleeye extended controls I think, it should be in a config file somewhere for the server i just had someone get the info for me
    
    - Get the channel id's by right clicking on the channels with developer mode enabled in discord
    
-8) Restart the bot, because it only creates the connection to the DayZ server on startup because I am neither a CS major nor a wizard
+8) Restart the bot, because it only creates the connection to the DayZ server on startup because I am neither a CS major nor a wizard, just a guy who knows a little bit of python and friends
 
 
 TODO

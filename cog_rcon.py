@@ -6,7 +6,6 @@ import discord
 from discord.ext import commands
 import bec_rcon
 import re
-import sys
 
 
 class Server_Bridge:
@@ -16,7 +15,6 @@ class Server_Bridge:
 
         # keep a reference to the discord client for handling messages
         self.discord_client = discord_client
-        self.reconnect_attempts = 0
 
         # Load the config file, doing all the path stuff as needed
         self.bec_config = dict()
@@ -164,36 +162,28 @@ class Server_Bridge:
 
         return
 
-    async def cycle_reconnect(self):
+    async def cycle_reconnect(self, reconnect_attempts=0):
         """Try to reconnect once per minute, until reconnect_attempts surpasses the config maximum setting"""
 
         debug_channel = await self.get_debug_channel()
+        await debug_channel.send('Disconnected, attempting to reconnect...')
+        print('Disconnected, attempting to reconnect...')
 
-        # Check to see if we've hit the connect attempt limit
-        if self.reconnect_attempts > self.bec_config["maximum_reconnect_attempts"]:
+        # Check how many times we've tried to connect
+        if reconnect_attempts > self.bec_config["maximum_reconnect_attempts"]:
             await debug_channel.send('Unable to reconnect. Use ```)reconnect``` upon server restoration.')
             print('Unable to reconnect. Use ```)reconnect``` upon server restoration.')
             return False
 
-        # Let everywhere know we're trying to reconnect
-        await debug_channel.send('Disconnected, attempting to reconnect...')
-        print('Disconnected, attempting to reconnect...')
-
-        # Wait the specified interval
-        await asyncio.sleep(self.bec_config["reconnect_attempt_interval_s"])
-
-        # Try to reconnect.
-        await self.bec_client.connect()
-
-        # If the client returns a successful keepAlive, the reconnect was successful. Reset the reconnect attempts.
+        # Try to reconnect. IF keepAlive returns true, the reconnection was successful.
+        await self.bec_client.reconnect()
         if await self.bec_client.keepAlive():
-            self.reconnect_attempts = 0
             await debug_channel.send('Successfully reconnected')
             return True
 
-        # Otherwise, try again and increment the attempts
-        self.reconnect_attempts += 1
-        return await self.cycle_reconnect()
+        # Try again after the specified interval.
+        await asyncio.sleep(self.bec_config["reconnect_attempt_interval_s"])
+        return await self.cycle_reconnect(reconnect_attempts + 1)
 
 
 class Steam_RCON(commands.Cog):
@@ -219,7 +209,7 @@ class Steam_RCON(commands.Cog):
     @commands.has_guild_permissions(administrator=True)
     async def initialize_server_configuration(self, command_context: commands.Context, *args):
 
-        if len(args) != 4: # Make sure the command is formatted properly
+        if len(args) != 5: # Make sure the command is formatted properly
             await self.server_bridge.get_debug_channel().send(
                 'Please format the command correctly:\n> ' +
                 ')isc <ipv4> <port> "<rcon_password>" <bridge_channel_id> <moderation_channel_id>')
@@ -232,6 +222,7 @@ class Steam_RCON(commands.Cog):
             "bec_rcon_password": args[2],
             "guild_debug_channel": int(command_context.channel.id),
             "guild_dayz_channel": int(args[3]),
+            "guild_moderation_channel": int(args[4]),
             "maximum_reconnect_attempts": 100,
             "reconnect_attempt_interval_s": 60
         }
@@ -247,18 +238,31 @@ class Steam_RCON(commands.Cog):
         help='Debug command',
         invoke_without_command=True)
     async def debug(self, command_context: commands.Context):
-        if command_context.author.id != 183033825108951041: return
+        if command_context.author.id != 183033825108951041: return # Only run if it's me >:L
         self.server_bridge.bec_client.disconnect()
-        #await self.debugsub()
         return
 
-    async def debugsub(self, cycle=0):
-        print(f'cycle: {cycle} / {self.server_bridge.bec_config["maximum_reconnect_attempts"]}')
-        await asyncio.sleep(10)
-        if cycle > self.server_bridge.bec_config['maximum_reconnect_attempts']:
-            print('Recursion attempts reached')
-            return
-        await self.debugsub(cycle+1)
+    @commands.command(name='reconnect')
+    @commands.has_permissions(view_audit_log=True)
+    async def rcon_reconnect(self, command_context: commands.Context):
+        
+        # Let the console and discord know there was a deconnect and we're trying to fix it
+        print('Attempting to reconnect...')
+        debug_channel = await self.server_bridge.get_debug_channel() # get the channel to use elsewhere too
+        await debug_channel.send('Attempting to reconnect...')
+        
+        # Attempt the reconnnect
+        await self.server_bridge.bec_client.reconnect()
+        
+        # Check if the server returns the signal from keepalive, which would signal that the reconnect worked
+        if await self.server_bridge.bec_client.keepAlive():
+            print('Reconnected.')
+            await debug_channel.send('Reconnected.')
+        else:
+            print('Failed to reconnect.')
+            await debug_channel.send('Failed to reconnect.')
+            
+        return
 
     @commands.command(name='rcon_kick')
     @commands.has_permissions(kick_members=True)
@@ -372,7 +376,7 @@ class Steam_RCON(commands.Cog):
             "Server Instance ID": player_to_ban_raw[0],
         }
 
-        # Confirm the identity of the user to kick.
+        # Confirm the identity of the user to kick. Print an embed showing their information.
         ban_embed = discord.Embed(
             color=discord.Color.red(),
             title='Confirm Player Ban',
@@ -404,5 +408,3 @@ class Steam_RCON(commands.Cog):
             await self.server_bridge.bec_client.addBan(player_to_ban["BattleEye ID"])
 
         return
-
-
