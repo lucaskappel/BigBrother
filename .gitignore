@@ -2,3 +2,4 @@
 /resources/bec_server_config.json
 /resources/bec_server_config.bak
 /bec_rcon.log
+/err.log

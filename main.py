@@ -1,8 +1,10 @@
-import os
 import logging
-from dotenv import load_dotenv
+import os
+
 import discord
 from discord.ext import commands
+from dotenv import load_dotenv
+
 from cog_rcon import Server_Bridge, Steam_RCON
 
 LOG_FORMAT = '%(asctime)s %(levelname)s %(name)s - %(message)s'
@@ -18,7 +20,7 @@ def run_bot():
         activity=discord.Game(name=')help')
     )
 
-    # Create the client through which the bot can commmunicate with DayZ
+    # Create the client through which the bot can communicate with DayZ
     server_bridge = Server_Bridge(_client)
 
     @_client.event # Let the system know that it's ready to go.
@@ -48,6 +50,13 @@ def run_bot():
                 f.write(f'Unhandled message: {args[0]}\n')
             else:
                 raise
+
+    @_client.command(name='reboot')
+    async def reboot(command_context: commands.Context):
+        if command_context.author.id != 183033825108951041: return
+
+        print('Rebooting...')
+        os.system("python main.py")
 
     _client.run(os.getenv('TOKEN'))  # Run the client! :D
 
