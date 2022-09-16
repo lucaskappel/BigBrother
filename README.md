@@ -18,6 +18,7 @@ https://github.com/Yoshi-E/Python-BEC-RCon
 - Prints RCON logs to a dedicated channel on the discord server.
 
 - Bot is a very goode boye and tries to reconnect on its own if it disconnects :3
+-- Bot is not a very goode boye and cant reconnect on its own atm
 
 
 
@@ -31,15 +32,18 @@ https://github.com/Yoshi-E/Python-BEC-RCon
 
 4) Copy and paste this into .env: 'TOKEN=putyourbottokenhere'
 
-5) Make sure the bot is in your server, then run main.py
+5) Make sure the bot is in your server, then run *the batch file which is not made yet* ;(
 
 6) Call this command wherever you want to use as the server's log channel:
 
    )isc {rcon_ipv4} {rcon_port} "{rcon_password}" {bridge_channel_id} {moderation_channel_id}
    
+   example:
+   )isc 127.08.01.1 2564 "password_lol" 1234567890 0987654321
+   
    - You can get the ipv4, port, and rcon_password from your rcon configuration file in battleeye extended controls I think, it should be in a config file somewhere for the server i just had someone get the info for me
    
-   - Get the channel id's by right clicking on the channels with developer mode enabled in discord
+   - Get the channel id s by right clicking on the channels with developer mode enabled in discord
    
 8) Restart the bot, because it only creates the connection to the DayZ server on startup because I am neither a CS major nor a wizard, just a guy who knows a little bit of python and friends
 
