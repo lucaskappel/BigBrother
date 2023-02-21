@@ -15,10 +15,6 @@ https://github.com/Yoshi-E/Python-BEC-RCon
 
 - Prints RCON logs to a dedicated channel on the discord server.
 
-- Bot is a very goode boye and tries to reconnect on its own if it disconnects :3
--- Bot is not a very goode boye and cant reconnect on its own atm
-
-
 
 <h2>How to Use</h2>
 
