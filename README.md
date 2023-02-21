@@ -1,7 +1,5 @@
 # BigBrother
 
-Another discord bot :corn:
-
 This bot was made to support the City of Wolves DayZSA Server. 
 
 The actual RCON parts are done in bec_rcon.py, made by Yoshi-E:
