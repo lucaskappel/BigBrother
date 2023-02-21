@@ -49,11 +49,3 @@ https://github.com/Yoshi-E/Python-BEC-RCon
 TODO
 ----
 - Figure out a way to get the bot to kick the DayZ server if it goes down or freezes.
-
-- Learn about whatever cursed mechanics are behind how DayZ events work and integrate those or something
-
-- Get a gf
-
-- Add more personality to the code through commenting
-
-- Add creepy/unsettling lore features to add to the atmosphere
